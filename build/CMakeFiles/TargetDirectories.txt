@@ -1,0 +1,3 @@
+/home/sogu/Personal/github_repos/mtdebugger/build/CMakeFiles/test_basic.dir
+/home/sogu/Personal/github_repos/mtdebugger/build/CMakeFiles/edit_cache.dir
+/home/sogu/Personal/github_repos/mtdebugger/build/CMakeFiles/rebuild_cache.dir
