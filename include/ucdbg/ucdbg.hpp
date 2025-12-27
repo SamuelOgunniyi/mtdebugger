@@ -11,14 +11,17 @@
 
 #include <chrono>
 #include <cstdint>
+#include <unistd.h> 
+#include <sys/syscall.h> 
 #include <thread>
 #include <atomic>
 #include <concepts>
 #include <type_traits>
 #include <string>
 #include <string_view>
-
-
+#include <unordered_map>
+#include <memory>
+#include <mutex>
 
 namespace ucdbg {
 
@@ -105,6 +108,7 @@ public:
     }
 };
 
+
 /**
  * Internal tracer implementation
  * This will be expanded in later stages
@@ -141,13 +145,23 @@ public:
         return initialized_.load();
     }
 
-    std::string get_thread_name() const {
-        return "";  // TODO: Implement thread name storage
+    std::string get_thread_name(){
+        std::lock_guard<std::mutex> lock(log_mutex_);
+        return thread_name_;
+    }
+
+    void register_thread_name(const std::string& name){
+        std::lock_guard<std::mutex> lock(log_mutex_);
+        thread_name_ = std::move(name);               
+        thread_name_map_[get_thread_id()] = thread_name_;
     }
 
 private:
     std::atomic<bool> initialized_{false};
     std::string transport_path_;
+    std::mutex log_mutex_;
+    std::string thread_name_;
+    std::unordered_map<uint64_t, std::string> thread_name_map_;
 };
 
 
@@ -167,22 +181,17 @@ inline void shutdown() {
     internal::TracerImpl::instance().shutdown();
 }
 
-inline void set_thread_name(std::string_view) {
-    // TODO: Implement thread name storage
+inline void set_thread_name(std::string_view name) {
+    internal::TracerImpl::instance().register_thread_name(std::string(name));
 }
 
 inline std::string get_thread_name() {
     return internal::TracerImpl::instance().get_thread_name();
 }
 
-inline uint64_t get_thread_id_cached() {
-    // TODO: Implement thread ID caching
-    return 0;
-}
-
 inline uint64_t get_thread_id() {
-    // TODO: Implement thread ID retrieval
-    return 0;
+    static thread_local uint64_t cached = static_cast<uint64_t>(syscall(SYS_gettid));
+    return cached;
 }
 
 } // namespace ucdbg
