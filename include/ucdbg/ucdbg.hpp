@@ -54,10 +54,6 @@ void set_thread_name(std::string_view name);
 std::string get_thread_name();
 
 /**
- * Get current thread ID (system thread ID)
- */
-uint64_t get_thread_id_cached();
-/**
  * Get current thread ID (public API)
  */
 uint64_t get_thread_id(); // Not implemented
@@ -126,10 +122,13 @@ public:
         }
         
         transport_path_ = transport_path ? transport_path : "/tmp/ucdbg.sock";
-        initialized_.store(true);
 
         // TODO: Open transport connection
-        return true;
+        
+        bool success = true; // replace with real check
+        if (success) initialized_.store(true);
+
+        return success;
     }
 
     void shutdown() {
@@ -145,23 +144,26 @@ public:
         return initialized_.load();
     }
 
-    std::string get_thread_name(){
-        std::lock_guard<std::mutex> lock(log_mutex_);
-        return thread_name_;
-    }
+    friend void ucdbg::set_thread_name(std::string_view);
+    friend std::string ucdbg::get_thread_name();
 
-    void register_thread_name(const std::string& name){
-        std::lock_guard<std::mutex> lock(log_mutex_);
-        thread_name_ = std::move(name);               
-        thread_name_map_[get_thread_id()] = thread_name_;
-    }
 
 private:
     std::atomic<bool> initialized_{false};
     std::string transport_path_;
-    std::mutex log_mutex_;
-    std::string thread_name_;
-    std::unordered_map<uint64_t, std::string> thread_name_map_;
+    inline static std::mutex thread_name_map_mutex_;
+    inline static thread_local std::string thread_name_;  
+    inline static std::unordered_map<uint64_t, std::string> thread_name_map_;
+
+    std::string get_thread_name(){
+        return thread_name_;
+    }
+
+    void register_thread_name(const std::string& name){
+        thread_name_ = name;  
+        std::lock_guard<std::mutex> lock(thread_name_map_mutex_);
+        thread_name_map_[get_thread_id()] = thread_name_;
+    }
 };
 
 
@@ -181,7 +183,10 @@ inline void shutdown() {
     internal::TracerImpl::instance().shutdown();
 }
 
-inline void set_thread_name(std::string_view name) {
+inline void set_thread_name(std::string_view name) {    
+    if (name.empty()) {
+        throw std::invalid_argument("thread name cannot be empty");
+    }
     internal::TracerImpl::instance().register_thread_name(std::string(name));
 }
 
