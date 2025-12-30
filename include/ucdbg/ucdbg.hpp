@@ -6,10 +6,8 @@
  * Stage 1.1: Basic structure and macros
  */
 
-#ifndef UCDBG_HPP
-#define UCDBG_HPP
+#pragma once
 
-#include <chrono>
 #include <cstdint>
 #include <unistd.h> 
 #include <sys/syscall.h> 
@@ -22,13 +20,16 @@
 #include <unordered_map>
 #include <memory>
 #include <mutex>
+#include <ucdbg/fast_timestamp.hpp>
+#include <ucdbg/thread_guard.hpp>
+#include <ucdbg/lock_guard.hpp>
+
 
 namespace ucdbg {
 
 // Forward declarations
 namespace internal {
     class TracerImpl;
-    class ThreadGuard;
 }
 
 /**
@@ -90,20 +91,6 @@ uint64_t get_thread_id(); // Not implemented
 
 namespace ucdbg {
 namespace internal {
-
-/**
- * Thread guard for automatic thread registration
- */
-class ThreadGuard {
-public:
-    ThreadGuard() {
-        // TODO: Register thread on first use
-    }
-    ~ThreadGuard() {
-        // TODO: Unregister thread on destruction
-    }
-};
-
 
 /**
  * Internal tracer implementation
@@ -201,4 +188,3 @@ inline uint64_t get_thread_id() {
 
 } // namespace ucdbg
 
-#endif // UCDBG_HPP

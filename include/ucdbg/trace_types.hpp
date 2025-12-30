@@ -3,8 +3,6 @@
 
 #include <cstdint>
 #include <string>
-#include <chrono>
-#include <ucdbg/logger.hpp>
 
 namespace ucdbg {
 
