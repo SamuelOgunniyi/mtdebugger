@@ -2,6 +2,7 @@
 
 #include <concepts>
 #include <ucdbg/event_helpers.hpp>
+#include <ucdbg/concurrentqueue.h>
 
 namespace ucdbg {
 namespace internal {
@@ -19,12 +20,12 @@ public:
         : lockable_(lockable), 
         lock_id_(lock_id ? lock_id : reinterpret_cast<uint64_t>(&lockable)) {        
         lockable_.lock();
-        auto event = internal::make_concurrency_event(EventType::LockAcquire, lock_id_);
+        event_queue_.enqueue(make_concurrency_event(EventType::LockAcquire, lock_id_));
     }
 
     ~LockGuard() noexcept {
         lockable_.unlock();
-        auto event = internal::make_concurrency_event(EventType::LockRelease, lock_id_);
+        event_queue_.enqueue(make_concurrency_event(EventType::LockRelease, lock_id_));
     }
 
 
@@ -37,6 +38,7 @@ public:
 private:
     L& lockable_;
     uint64_t lock_id_;
+    moodycamel::ConcurrentQueue<ucdbg::TraceEvent> event_queue_;
 };    
 
 }  // namespace internal 
