@@ -17,12 +17,18 @@
 #include <type_traits>
 #include <string>
 #include <string_view>
+#include <algorithm>
+#include <cstring>
 #include <unordered_map>
 #include <memory>
 #include <mutex>
+#include <stdexcept>
 #include <ucdbg/fast_timestamp.hpp>
 #include <ucdbg/thread_guard.hpp>
 #include <ucdbg/lock_guard.hpp>
+#include <ucdbg/event_helpers.hpp>
+#include <ucdbg/runtime.hpp>
+#include <ucdbg/trace_types.hpp>
 
 
 namespace ucdbg {
@@ -103,6 +109,16 @@ public:
         return inst;
     }
 
+#ifdef UCDBG_TESTING
+    const std::array<char, 32>& thread_name_buf_for_test() const {
+        return thread_name_buf;
+    }
+
+    uint8_t thread_name_len_for_test() const {
+        return thread_name_len;
+    }
+#endif
+
     bool initialize(const char* transport_path) {
         if (initialized_.load()) {
             return false;  // Already initialized
@@ -138,9 +154,10 @@ public:
 private:
     std::atomic<bool> initialized_{false};
     std::string transport_path_;
-    inline static std::mutex thread_name_map_mutex_;
+
     inline static thread_local std::string thread_name_;  
-    inline static std::unordered_map<uint64_t, std::string> thread_name_map_;
+    inline static thread_local std::array<char, 32> thread_name_buf{};
+    inline static thread_local uint8_t thread_name_len = 0;
 
     std::string get_thread_name(){
         return thread_name_;
@@ -148,8 +165,15 @@ private:
 
     void register_thread_name(const std::string& name){
         thread_name_ = name;  
-        std::lock_guard<std::mutex> lock(thread_name_map_mutex_);
-        thread_name_map_[get_thread_id()] = thread_name_;
+        const size_t N = thread_name_buf.size();
+        const size_t max_copy = (N > 0) ? (N - 1) : 0;
+        const size_t len = std::min(name.size(), max_copy);
+        thread_name_len = static_cast<uint8_t>(len);
+        std::memcpy(thread_name_buf.data(), name.data(), len);
+        thread_name_buf[len] = '\0';
+        Runtime::instance().submit(
+            make_concurrency_event(EventType::ThreadName)
+        );
     }
 };
 

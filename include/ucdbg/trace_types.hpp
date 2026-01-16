@@ -7,7 +7,7 @@
 namespace ucdbg {
 
 // Binary format version (increment when format changes)
-constexpr uint8_t TRACE_FORMAT_VERSION = 1;
+constexpr uint8_t TRACE_FORMAT_VERSION = 2;
 
 // Fixed-size type aliases for ABI independence
 using timestamp_t = uint64_t;      // Nanoseconds since epoch
@@ -24,9 +24,10 @@ enum class EventKind : uint8_t {
 // Event type (explicit uint8_t for binary format)
 enum class EventType : uint8_t {
     ThreadStart = 0,
-    ThreadEnd = 1,
-    LockAcquire = 2,
-    LockRelease = 3
+    ThreadName = 1,
+    ThreadEnd = 2,
+    LockAcquire = 3,
+    LockRelease = 4
     // Add new types here - old readers will skip unknown types
 };
 
@@ -147,6 +148,7 @@ struct ThreadInfo {
 inline std::string event_type_to_string(EventType event_type) {
     switch (event_type) {
         case EventType::ThreadStart: return "ThreadStart";
+        case EventType::ThreadName: return "ThreadName";
         case EventType::ThreadEnd: return "ThreadEnd";
         case EventType::LockAcquire: return "LockAcquire";
         case EventType::LockRelease: return "LockRelease";
