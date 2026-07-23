@@ -4,7 +4,7 @@ Unified Concurrency Debugger - A header-only C++ library for tracing concurrency
 
 ## Overview
 
-`ucdbg` provides lightweight instrumentation for tracking thread lifecycle, lock operations, and other concurrency events with minimal overhead. Designed for performance-critical applications where tracing overhead must be kept to a minimum.
+`ucdbg` is a lightweight, header-only C++ library for tracing concurrency events in multi-threaded applications. It was built to make concurrent systems easier to understand by providing low-overhead instrumentation for threads, locks and runtime events.
 
 ## Requirements
 
@@ -27,18 +27,30 @@ Unified Concurrency Debugger - A header-only C++ library for tracing concurrency
 - Forward declarations used to break dependency cycles
 - Modular header structure
 
-### 🚧 In Progress
+### Current focus
 
-**Event Transport:**
-- **MPMC Queue** - moodycamel ConcurrentQueue integrated for lock-free event queuing
-- **TraceEvent Producer** - Implementation of event enqueueing from guards (coming shortly)
+The tracing primitives are in place. Current work is focused on connecting the event pipeline by:
 
-### 📋 Planned
+- integrating the lock-free event queue
+- implementing asynchronous event transport
+- adding serialization and visualization support
+
+### 📋 Future Work
 
 - Background worker thread for event consumption
 - Transport layer (Unix domain socket/file output)
 - Queue integration with TracerImpl
 - Event serialization and transmission
+
+### Project goals
+
+The long-term goal is to provide a lightweight toolkit for understanding the runtime behaviour of concurrent systems without requiring heavyweight tracing frameworks.
+
+While the initial motivation came from debugging robotics software, the library is designed to be useful for any modern C++ application where understanding thread interactions is important.
+
+### Status
+
+The project is still evolving. The core tracing infrastructure is in place, with the transport layer, visualization and developer tooling left as future work.
 
 ## Project Structure
 
@@ -85,10 +97,9 @@ std::mutex mtx;
 
 ## Performance
 
-- **FastTimestamp**: ~1-2ns overhead (10-20x faster than std::chrono)
+- **FastTimestamp**: Thread-local cached timestamps to reduce timestamp overhead on hot paths.
 - **Thread-local caching**: Reduces system call overhead
 - **Lock-free queue**: Zero-copy event transport (when implemented)
-- **RAII guards**: Zero overhead when not used
 
 ## Building
 
